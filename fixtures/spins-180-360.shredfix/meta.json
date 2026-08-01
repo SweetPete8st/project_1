@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "spins-180-360",
+  "notes" : "FS 180, BS 180 back, 360",
+  "pocket" : "FR",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

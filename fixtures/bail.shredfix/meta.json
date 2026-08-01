@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "bail",
+  "notes" : "slam + tumble + 8s stillness",
+  "pocket" : "FL",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "slides-vs-brakes",
+  "notes" : "2 powerslides, 1 footbrake",
+  "pocket" : "FR",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

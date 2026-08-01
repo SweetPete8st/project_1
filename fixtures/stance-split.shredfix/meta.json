@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "stance-split",
+  "notes" : "30s regular \/ 20s switch, two bearings",
+  "pocket" : "FR",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

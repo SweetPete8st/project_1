@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "repocket",
+  "notes" : "roll change 55° mid-idle",
+  "pocket" : "FR",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

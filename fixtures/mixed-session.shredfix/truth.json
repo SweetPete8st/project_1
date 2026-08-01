@@ -1,0 +1,76 @@
+{
+  "events" : [
+    {
+      "airtime" : 0.35,
+      "kind" : "airborne",
+      "rotationDegrees" : 0,
+      "tEnd" : 124.93000000001268,
+      "tStart" : 124.40000000001248
+    },
+    {
+      "airtime" : 0.5,
+      "kind" : "airborne",
+      "rotationDegrees" : 180,
+      "tEnd" : 131.40000000001137,
+      "tStart" : 130.72000000001185
+    },
+    {
+      "airtime" : 0.45160075575178754,
+      "kind" : "drop",
+      "tEnd" : 176.68999999997018,
+      "tStart" : 176.0899999999706
+    },
+    {
+      "kind" : "powerslide",
+      "tEnd" : 183.27999999996405,
+      "tStart" : 182.07999999996514
+    }
+  ],
+  "pushCount" : 5,
+  "stanceIntervals" : [
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 116.00000000000819,
+      "tStart" : 108.00000000000409
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 124.00000000001228,
+      "tStart" : 116.00000000000819
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 130.32000000001221,
+      "tStart" : 125.32000000001295
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "switch",
+      "tEnd" : 137.79000000000542,
+      "tStart" : 131.79000000001088
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 175.78999999997086,
+      "tStart" : 167.78999999997814
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 182.07999999996514,
+      "tStart" : 177.0799999999697
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 188.2799999999595,
+      "tStart" : 183.27999999996405
+    }
+  ],
+  "topSpeed" : 4.5,
+  "totalDescent" : 1
+}

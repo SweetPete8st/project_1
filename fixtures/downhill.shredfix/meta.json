@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "downhill",
+  "notes" : "18m descent, 9 m\/s, slide at bottom",
+  "pocket" : "FR",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

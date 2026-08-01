@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "goofy",
+  "device" : "FixtureSynth",
+  "name" : "walking-trap",
+  "notes" : "walking must not create events",
+  "pocket" : "FL",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

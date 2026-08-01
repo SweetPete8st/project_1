@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "ollie-line-x10",
+  "notes" : "10 ollies, varied airtime",
+  "pocket" : "FR",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

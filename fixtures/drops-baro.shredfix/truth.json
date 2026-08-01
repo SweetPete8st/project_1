@@ -1,0 +1,39 @@
+{
+  "events" : [
+    {
+      "airtime" : 0.40392399542051044,
+      "kind" : "drop",
+      "tEnd" : 112.8500000000065,
+      "tStart" : 112.30000000000629
+    },
+    {
+      "airtime" : 0.5530957095235675,
+      "kind" : "drop",
+      "tEnd" : 120.24000000001028,
+      "tStart" : 119.54000000001
+    }
+  ],
+  "pushCount" : 0,
+  "stanceIntervals" : [
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 112.00000000000614,
+      "tStart" : 106.00000000000307
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 119.24000000000984,
+      "tStart" : 113.24000000000677
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 124.6300000000126,
+      "tStart" : 120.63000000001055
+    }
+  ],
+  "topSpeed" : 2.5,
+  "totalDescent" : 2.3
+}

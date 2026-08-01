@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "drops-baro",
+  "notes" : "0.8m and 1.5m ledge drops",
+  "pocket" : "FL",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

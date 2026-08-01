@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "goofy",
+  "device" : "FixtureSynth",
+  "name" : "ollie-350ms-FR",
+  "notes" : "two clean ollies, airtime 0.35s",
+  "pocket" : "FR",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

@@ -1,0 +1,145 @@
+{
+  "events" : [
+    {
+      "airtime" : 0.2,
+      "kind" : "airborne",
+      "rotationDegrees" : 0,
+      "tEnd" : 111.78000000000596,
+      "tStart" : 111.40000000000583
+    },
+    {
+      "airtime" : 0.28,
+      "kind" : "airborne",
+      "rotationDegrees" : 0,
+      "tEnd" : 116.03000000000813,
+      "tStart" : 115.57000000000797
+    },
+    {
+      "airtime" : 0.36,
+      "kind" : "airborne",
+      "rotationDegrees" : 0,
+      "tEnd" : 120.36000000001034,
+      "tStart" : 119.82000000001014
+    },
+    {
+      "airtime" : 0.44,
+      "kind" : "airborne",
+      "rotationDegrees" : 0,
+      "tEnd" : 124.7700000000126,
+      "tStart" : 124.15000000001235
+    },
+    {
+      "airtime" : 0.52,
+      "kind" : "airborne",
+      "rotationDegrees" : 0,
+      "tEnd" : 129.26000000001332,
+      "tStart" : 128.56000000001382
+    },
+    {
+      "airtime" : 0.2,
+      "kind" : "airborne",
+      "rotationDegrees" : 0,
+      "tEnd" : 133.43000000000953,
+      "tStart" : 133.05000000000973
+    },
+    {
+      "airtime" : 0.28,
+      "kind" : "airborne",
+      "rotationDegrees" : 0,
+      "tEnd" : 137.68000000000566,
+      "tStart" : 137.22000000000594
+    },
+    {
+      "airtime" : 0.36,
+      "kind" : "airborne",
+      "rotationDegrees" : 0,
+      "tEnd" : 142.01000000000172,
+      "tStart" : 141.47000000000207
+    },
+    {
+      "airtime" : 0.44,
+      "kind" : "airborne",
+      "rotationDegrees" : 0,
+      "tEnd" : 146.4199999999977,
+      "tStart" : 145.79999999999814
+    },
+    {
+      "airtime" : 0.52,
+      "kind" : "airborne",
+      "rotationDegrees" : 0,
+      "tEnd" : 150.90999999999363,
+      "tStart" : 150.20999999999412
+    }
+  ],
+  "pushCount" : 0,
+  "stanceIntervals" : [
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 111.00000000000563,
+      "tStart" : 106.00000000000307
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 115.17000000000776,
+      "tStart" : 112.17000000000623
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 119.42000000000994,
+      "tStart" : 116.4200000000084
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 123.75000000001215,
+      "tStart" : 120.75000000001062
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 128.16000000001418,
+      "tStart" : 125.16000000001287
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 132.6500000000101,
+      "tStart" : 129.65000000001282
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 136.8200000000063,
+      "tStart" : 133.82000000000903
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 141.07000000000244,
+      "tStart" : 138.07000000000517
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 145.3999999999985,
+      "tStart" : 142.40000000000123
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 149.8099999999945,
+      "tStart" : 146.80999999999722
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 154.2999999999904,
+      "tStart" : 151.29999999999313
+    }
+  ],
+  "topSpeed" : 2.8,
+  "totalDescent" : 0
+}
