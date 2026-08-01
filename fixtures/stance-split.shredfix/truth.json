@@ -1,0 +1,34 @@
+{
+  "events" : [
+
+  ],
+  "pushCount" : 0,
+  "stanceIntervals" : [
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 126.0000000000133,
+      "tStart" : 106.00000000000307
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "switch",
+      "tEnd" : 138.00000000000523,
+      "tStart" : 126.0000000000133
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 147.99999999999613,
+      "tStart" : 138.00000000000523
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "switch",
+      "tEnd" : 155.99999999998886,
+      "tStart" : 147.99999999999613
+    }
+  ],
+  "topSpeed" : 3.5,
+  "totalDescent" : 0
+}

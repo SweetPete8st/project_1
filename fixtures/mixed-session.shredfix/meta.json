@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "mixed-session",
+  "notes" : "the works",
+  "pocket" : "FR",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

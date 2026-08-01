@@ -1,0 +1,92 @@
+# XcodeGen project definition (ADR-0006: declarative project instead of a committed
+# .xcodeproj). On a Mac: `brew install xcodegen && xcodegen generate`, open Shred.xcodeproj.
+name: Shred
+options:
+  bundleIdPrefix: com.shred
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+
+packages:
+  ShredPackage:
+    path: .
+
+targets:
+  Shred:
+    type: application
+    platform: iOS
+    sources:
+      - App/Shred
+      - App/Shared
+    dependencies:
+      - package: ShredPackage
+        products:
+          - FeatureUI
+          - SessionEngine
+          - CaptureKit
+          - DetectionKit
+          - TelemetryStore
+          - RouteKit
+          - HealthBridge
+          - ShredCore
+      - target: ShredLiveActivity
+    entitlements:
+      path: App/Shred/Shred.entitlements
+    info:
+      path: App/Shred/Info.plist
+      properties:
+        UILaunchScreen: {}
+        CFBundleDisplayName: SHRED
+        NSMotionUsageDescription: >-
+          SHRED reads motion sensors to detect your ollies, airs, impacts, stance, and —
+          when enabled — the push rhythm that auto-starts a session. Motion data stays on
+          your iPhone.
+        NSLocationWhenInUseUsageDescription: >-
+          Your route, speed, and spots come from GPS during sessions. Location is only used
+          while a sesh is running and stays on your iPhone.
+        NSHealthShareUsageDescription: >-
+          SHRED does not read Health data.
+        NSHealthUpdateUsageDescription: >-
+          Save your sessions as skating workouts so skating counts toward your rings.
+        NSSupportsLiveActivities: true
+        UIBackgroundModes:
+          - location
+          - processing
+        BGTaskSchedulerPermittedIdentifiers:
+          - $(PRODUCT_BUNDLE_IDENTIFIER).autostart-listening
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        TARGETED_DEVICE_FAMILY: "1"
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0.0
+
+  ShredLiveActivity:
+    type: app-extension
+    platform: iOS
+    sources:
+      - App/ShredLiveActivity
+      - App/Shared
+    info:
+      path: App/ShredLiveActivity/Info.plist
+      properties:
+        CFBundleDisplayName: SHRED Live
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+
+schemes:
+  Shred:
+    build:
+      targets:
+        Shred: all
+    run:
+      config: Debug
+    test:
+      config: Debug

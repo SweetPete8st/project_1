@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Purity gate (04 §2 / NFR-8): the entire core must build & test on Linux, and the
+  # synthetic corpus must pass every accuracy gate (08 §4 synthetic tier).
+  linux-core:
+    runs-on: ubuntu-24.04
+    container: swift:6.0-noble
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (strict concurrency)
+        run: swift build
+      - name: Unit + engine tests
+        run: swift test
+      - name: Regenerate synthetic corpus
+        run: swift run fixture-synth fixtures-ci
+      - name: Replay accuracy gates
+        run: swift run shred-replay run fixtures-ci --gates --report replay-report.json
+      - name: Upload replay metrics
+        uses: actions/upload-artifact@v4
+        with:
+          name: replay-report
+          path: replay-report.json
+
+  # App target compiles on macOS (no simulator run in CI at v1; UI tests are M6).
+  ios-app:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build app (no signing)
+        run: |
+          xcodebuild build \
+            -project Shred.xcodeproj \
+            -scheme Shred \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/dd \
+            CODE_SIGNING_ALLOWED=NO
+      # Unsigned IPA for AltStore/SideStore sideloading (docs/testing-without-a-mac.md
+      # plan B): download the artifact, then sideload with a free Apple ID.
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/dd/Build/Products/Debug-iphoneos/Shred.app build/Payload/
+          (cd build && zip -qry Shred-unsigned.ipa Payload)
+      - name: Upload unsigned IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shred-unsigned-ipa
+          path: build/Shred-unsigned.ipa

@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "gps-dropout",
+  "notes" : "ollie inside GPS gap",
+  "pocket" : "FR",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

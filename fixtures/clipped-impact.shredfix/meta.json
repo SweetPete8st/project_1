@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "clipped-impact",
+  "notes" : "landing peak beyond clip",
+  "pocket" : "FR",
+  "sampleRate" : 100,
+  "synthetic" : true
+}

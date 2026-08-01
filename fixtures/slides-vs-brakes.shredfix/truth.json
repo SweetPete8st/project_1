@@ -1,0 +1,48 @@
+{
+  "events" : [
+    {
+      "kind" : "powerslide",
+      "tEnd" : 113.20000000000675,
+      "tStart" : 112.00000000000614
+    },
+    {
+      "kind" : "decel",
+      "tEnd" : 120.60000000001054,
+      "tStart" : 119.20000000000982
+    },
+    {
+      "kind" : "powerslide",
+      "tEnd" : 126.60000000001361,
+      "tStart" : 125.6000000000131
+    }
+  ],
+  "pushCount" : 0,
+  "stanceIntervals" : [
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 112.00000000000614,
+      "tStart" : 106.00000000000307
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 119.20000000000982,
+      "tStart" : 113.20000000000675
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 125.6000000000131,
+      "tStart" : 120.60000000001054
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 130.60000000001196,
+      "tStart" : 126.60000000001361
+    }
+  ],
+  "topSpeed" : 6,
+  "totalDescent" : 0
+}

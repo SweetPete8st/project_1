@@ -1,0 +1,27 @@
+{
+  "events" : [
+    {
+      "airtime" : 0.6698321683155329,
+      "kind" : "drop",
+      "tEnd" : 113.11000000000664,
+      "tStart" : 112.30000000000629
+    }
+  ],
+  "pushCount" : 0,
+  "stanceIntervals" : [
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 112.00000000000614,
+      "tStart" : 106.00000000000307
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 118.50000000000946,
+      "tStart" : 113.5000000000069
+    }
+  ],
+  "topSpeed" : 3,
+  "totalDescent" : 2.2
+}

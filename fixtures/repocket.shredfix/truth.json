@@ -1,0 +1,22 @@
+{
+  "events" : [
+
+  ],
+  "pushCount" : 0,
+  "stanceIntervals" : [
+    {
+      "meanSigma" : 0,
+      "stance" : "regular",
+      "tEnd" : 121.00000000001074,
+      "tStart" : 106.00000000000307
+    },
+    {
+      "meanSigma" : 0,
+      "stance" : "indeterminate",
+      "tEnd" : 143.99999999999977,
+      "tStart" : 128.99999999999977
+    }
+  ],
+  "topSpeed" : 3,
+  "totalDescent" : 0
+}

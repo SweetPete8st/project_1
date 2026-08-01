@@ -1,0 +1,9 @@
+{
+  "declaredStance" : "regular",
+  "device" : "FixtureSynth",
+  "name" : "ollie-250ms-FL",
+  "notes" : "two clean ollies, airtime 0.25s",
+  "pocket" : "FL",
+  "sampleRate" : 100,
+  "synthetic" : true
+}
