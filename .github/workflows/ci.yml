@@ -21,11 +21,15 @@ jobs:
         run: swift run fixture-synth fixtures-ci
       - name: Replay accuracy gates
         run: swift run shred-replay run fixtures-ci --gates --report replay-report.json
+      - name: Real-session corpus (report-only; gates once tic-tac precision lands)
+        run: swift run shred-replay run fixtures-real --report real-report.json
       - name: Upload replay metrics
         uses: actions/upload-artifact@v4
         with:
           name: replay-report
-          path: replay-report.json
+          path: |
+            replay-report.json
+            real-report.json
 
   # App target compiles on macOS (no simulator run in CI at v1; UI tests are M6).
   ios-app:
