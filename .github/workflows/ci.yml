@@ -42,4 +42,17 @@ jobs:
             -project Shred.xcodeproj \
             -scheme Shred \
             -destination 'generic/platform=iOS' \
+            -derivedDataPath build/dd \
             CODE_SIGNING_ALLOWED=NO
+      # Unsigned IPA for AltStore/SideStore sideloading (docs/testing-without-a-mac.md
+      # plan B): download the artifact, then sideload with a free Apple ID.
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/dd/Build/Products/Debug-iphoneos/Shred.app build/Payload/
+          (cd build && zip -qry Shred-unsigned.ipa Payload)
+      - name: Upload unsigned IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Shred-unsigned-ipa
+          path: build/Shred-unsigned.ipa
