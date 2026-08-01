@@ -51,6 +51,9 @@ public struct DetectionTuning: Sendable, Codable, Equatable {
     /// …which must reach this peak within landingPeakWindow to confirm (else discarded).
     public var landConfirmG: Float = 1.35
     public var landingPeakWindow: Double = 0.25
+    /// Airborne events closer than this merge into one attempt — scuffed/double-pop
+    /// attempts fragment into micro-windows (rider-confirmed, session 2026-08-01 #2).
+    public var airborneMergeWindow: Double = 1.5
     public var airtimeMin: Double = 0.12
     public var airtimeMax: Double = 1.2
     public var postLandingRideCheck: Double = 1.0
@@ -150,6 +153,7 @@ public struct DetectionTuning: Sendable, Codable, Equatable {
         f(.landExitThreshold, &t.landExitThreshold)
         f(.landConfirmG, &t.landConfirmG)
         f(.landingPeakWindow, &t.landingPeakWindow)
+        f(.airborneMergeWindow, &t.airborneMergeWindow)
         f(.airtimeMin, &t.airtimeMin)
         f(.airtimeMax, &t.airtimeMax)
         f(.postLandingRideCheck, &t.postLandingRideCheck)

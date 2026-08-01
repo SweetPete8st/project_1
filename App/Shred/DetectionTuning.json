@@ -1,4 +1,5 @@
 {
+  "airborneMergeWindow" : 1.5,
   "airtimeMax" : 1.2,
   "airtimeMin" : 0.12,
   "autoPauseIdle" : 90,

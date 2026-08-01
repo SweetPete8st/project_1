@@ -1,0 +1,43 @@
+{
+  "events": [
+    {
+      "kind": "airborne",
+      "tStart": 265.0,
+      "tEnd": 266.6
+    },
+    {
+      "kind": "drop",
+      "tStart": 268.0,
+      "tEnd": 269.0
+    },
+    {
+      "kind": "airborne",
+      "tStart": 271.4,
+      "tEnd": 272.4
+    },
+    {
+      "kind": "drop",
+      "tStart": 273.5,
+      "tEnd": 274.5
+    },
+    {
+      "kind": "drop",
+      "tStart": 279.3,
+      "tEnd": 280.3
+    },
+    {
+      "kind": "airborne",
+      "tStart": 302.7,
+      "tEnd": 303.9
+    },
+    {
+      "kind": "airborne",
+      "tStart": 324.8,
+      "tEnd": 325.6
+    }
+  ],
+  "stanceIntervals": [],
+  "pushCount": null,
+  "topSpeed": null,
+  "totalDescent": null
+}
