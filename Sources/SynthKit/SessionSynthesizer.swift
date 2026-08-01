@@ -384,13 +384,34 @@ public final class SessionSynthesizer {
             StanceInterval(tStart: start, tEnd: t, stance: .regular, meanSigma: 0))
     }
 
-    /// Walking interlude: 2 Hz vertical bob, low vibration.
+    /// Walking interlude. Modeled on the 2026-08-01 real pocket session: each stride of
+    /// the pocket leg produces a swing-phase low-g dip followed by a hard broadband heel
+    /// strike (2–5 g pocket slap) — NOT a gentle sinusoid. Stride period ~1.05 s.
     public func walk(_ duration: Double, bearingDeg: Double) {
         course = bearingDeg * .pi / 180
         speed = 1.4
+        let stride = 1.05
         for i in 0..<Int(duration * sampleRate) {
-            let phase = Double(i) * dt * 2 * .pi * 2.0
-            let u = SIMD3<Float>(0, 0, Float(sin(phase)) * 0.14)
+            let t = Double(i) * dt
+            let phase = (t / stride).truncatingRemainder(dividingBy: 1.0)
+            var u = SIMD3<Float>.zero
+            if phase > 0.55 && phase < 0.72 {
+                // Swing: thigh in partial free-fall.
+                u.z = -0.75 + Float(rng.gaussian()) * 0.08
+            } else if phase >= 0.72 && phase < 0.78 {
+                // Heel strike: sharp broadband impulse (pocket slap).
+                let spike = Float(2.5 + rng.uniform() * 2.5)
+                u.z = spike
+                u.x = Float(rng.gaussian()) * 0.6
+                u.y = Float(rng.gaussian()) * 0.6
+            } else {
+                u.z = Float(sin(t * 2 * .pi / stride * 2)) * 0.12
+            }
+            // Opposite-leg strike bleeds through at half amplitude, half a stride later.
+            let phase2 = (t / stride + 0.5).truncatingRemainder(dividingBy: 1.0)
+            if phase2 >= 0.72 && phase2 < 0.76 {
+                u.z += Float(1.0 + rng.uniform())
+            }
             step(u: u, vibration: 0.004)
         }
         speed = 0

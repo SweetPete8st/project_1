@@ -38,6 +38,8 @@ public enum WebRecordingImport {
         var raw = [RawAccelFrame]()
         motion.reserveCapacity(motionRows.count)
         let tBase = 100.0  // keep sensor clocks positive/typical
+        var yaw: Float = 0
+        var lastT: Double?
         for row in motionRows {
             guard row.count >= 10, let t = num(row[0]) else { continue }
             let ag = SIMD3<Float>(
@@ -51,7 +53,15 @@ public enum WebRecordingImport {
                 Float((num(row[8]) ?? 0) * .pi / 180),   // beta  → x
                 Float((num(row[9]) ?? 0) * .pi / 180),   // gamma → y
                 Float((num(row[7]) ?? 0) * .pi / 180))   // alpha → z
-            let attitude = tiltAttitude(gravityDevice: gravity)
+            // Integrate world-frame yaw from the gyro (web pages get no compass): drifts
+            // over minutes but is accurate over trick-scale windows, which is all the
+            // rotation detector needs.
+            let tilt = tiltAttitude(gravityDevice: gravity)
+            let dt = lastT.map { Float(t - $0) } ?? 0
+            lastT = t
+            let omegaWorld = tilt.act(rot)
+            yaw += omegaWorld.z * dt
+            let attitude = (Quaternion(yaw: yaw) * tilt).normalized
             motion.append(
                 MotionFrame(
                     sensorTime: tBase + t, userAccel: user, gravity: gravity,
@@ -88,8 +98,8 @@ public enum WebRecordingImport {
             meta: FixtureMeta(
                 name: name, device: "web-recorder", pocket: .frontRight,
                 declaredStance: .regular, sampleRate: rate,
-                notes: "imported shred-web-recording.v1; tilt-only attitude (no compass): "
-                    + "stance/rotation metrics not meaningful", synthetic: false),
+                notes: "imported shred-web-recording.v1; gyro-integrated yaw + tilt attitude "
+                    + "(no compass): rotation valid at trick scale, stance not meaningful", synthetic: false),
             truth: FixtureTruth(events: []),  // unlabeled — label after video review
             motion: motion, rawAccel: raw, locations: fixes, baro: [])
         try FixtureIO.write(fixture, to: URL(fileURLWithPath: outputPath))

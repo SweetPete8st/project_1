@@ -71,7 +71,7 @@ public final class DetectionPipeline {
         self.sampleRate = sampleRate
         self.assumeRiding = assumeRiding
         self.preprocessor = Preprocessor(tuning: tuning, sampleRate: sampleRate)
-        self.segmenter = ActivitySegmenter(tuning: tuning)
+        self.segmenter = ActivitySegmenter(tuning: tuning, sampleRate: sampleRate)
         self.airborne = AirborneDetector(
             tuning: tuning, sampleRate: sampleRate, accelClipG: capabilities.accelClipG,
             stance: calibration?.declaredStance)
@@ -127,9 +127,27 @@ public final class DetectionPipeline {
         elevation.push(baro: baro)
     }
 
+    /// Suppresses walking-artifact events: pocket slap while walking mimics small airs
+    /// and impacts; the surrounding gait periodicity tells them apart (gaitVetoRho).
+    private func gaitVeto(_ events: [DetectedEvent]) -> [DetectedEvent] {
+        events.filter { e in
+            switch e.kind {
+            case .airborne, .drop, .impact:
+                // Median over the surrounding window, plus a look-ahead: at a walking
+                // onset the autocorr window is still half-filled, but ρ spikes within
+                // ~2 s — a real trick doesn't have high-confidence gait right after it.
+                let median = segmenter.gaitRhoMedian(from: e.tStart - 2, to: e.tEnd + 2)
+                let after = segmenter.gaitRhoMax(from: e.tStart - 0.5, to: e.tEnd + 3.5)
+                return median < Double(tuning.gaitVetoRho) && after < 0.5
+            default:
+                return true
+            }
+        }
+    }
+
     /// Arbitrated events so far (live view). Cheap enough at session scale.
     public func drainEvents() -> [DetectedEvent] {
-        EventArbiter.arbitrate(collected, tuning: tuning)
+        gaitVeto(EventArbiter.arbitrate(collected, tuning: tuning))
     }
 
     public var currentActivity: ActivityState { segmenter.state }
@@ -144,7 +162,7 @@ public final class DetectionPipeline {
         let activity = segmenter.finalize(at: lastT)
         let (rawStanceIntervals, calibration) = stance.finalize(at: lastT)
 
-        var events = EventArbiter.arbitrate(collected, tuning: tuning)
+        var events = gaitVeto(EventArbiter.arbitrate(collected, tuning: tuning))
         pushes.removePushes(overlapping: events)
 
         // Drop cross-check (03 §11): barometer step within slack confirms + measures drops.

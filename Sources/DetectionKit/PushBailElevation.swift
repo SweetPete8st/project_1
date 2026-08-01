@@ -148,7 +148,10 @@ final class BailDetector {
 
     private func resolve(_ c: Candidate, at t: Double) {
         let tumble = c.tumbleSamples > 10
-        guard c.stillnessOK || tumble else { return }
+        // Real-session lesson: tumble alone is not enough — aggressive kick turns exceed
+        // the tumble rate. A bail requires the rider to actually go quiet afterwards;
+        // tumble only raises severity.
+        guard c.stillnessOK else { return }
         // Saturation-duration severity heuristic (02 §4) — internal ranking only.
         let severity = Double(min(c.peakG / accelClipG, 1)) + (tumble ? 0.5 : 0)
             + (c.stillnessOK ? 0.3 : 0)
@@ -167,8 +170,13 @@ final class BailDetector {
     }
 
     func finalize(at t: Double) -> [DetectedEvent] {
+        // A candidate whose stillness window ran into the end of the stream is ambiguous
+        // (every session ends with the rider stopping) — only emit if the quiet window
+        // completed while data was still flowing.
         if let c = candidate {
-            resolve(c, at: t)
+            if c.stillnessOK, t - c.tImpact > tuning.bailStillnessWindow + 1.4 {
+                resolve(c, at: t)
+            }
             candidate = nil
         }
         return drain()

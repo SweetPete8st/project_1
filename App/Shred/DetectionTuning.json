@@ -18,10 +18,15 @@
   "elevationHysteresis" : 1.5,
   "flightAccelThreshold" : 0.45,
   "flightMinDuration" : 0.09,
+  "gaitEnvelopeRMSMin" : 0.08,
+  "gaitLagMax" : 1.3,
+  "gaitLagMin" : 0.35,
+  "gaitPeriodicityMin" : 0.4,
+  "gaitVetoRho" : 0.33,
   "idleMaxSpeed" : 0.5,
   "idleRMS" : 0.012,
   "impactSeparation" : 0.3,
-  "impactThresholdG" : 4,
+  "impactThresholdG" : 6,
   "kalmanFallbackMeasurementStd" : 0.7,
   "kalmanProcessNoise" : 0.8,
   "landAccelThreshold" : 2.2,
@@ -61,5 +66,6 @@
   "vibrationBandHighHz" : 25,
   "vibrationBandLowHz" : 8,
   "vibrationRidingRMS" : 0.035,
-  "walkingCadenceHz" : 1.4
+  "walkingCadenceHz" : 1.4,
+  "walkingMaxSpeed" : 2.2
 }

@@ -20,6 +20,21 @@ public struct DetectionTuning: Sendable, Codable, Equatable {
     public var walkingCadenceHz: Double = 1.4
     public var stateHold: Double = 2.0
     public var autoPauseIdle: Double = 90
+    /// Gait discrimination (real-session 2026-08-01: walking heel strikes are broadband
+    /// impulses that defeat the band-RMS test; stride periodicity is the reliable tell).
+    /// Normalized envelope autocorrelation peak in the stride-lag band ≥ this → walking.
+    public var gaitPeriodicityMin: Float = 0.40
+    /// Envelope RMS floor for the gait test (impulses must actually be present).
+    public var gaitEnvelopeRMSMin: Float = 0.08
+    /// Stride lag search band, seconds.
+    public var gaitLagMin: Double = 0.35
+    public var gaitLagMax: Double = 1.3
+    /// GNSS overrides gait: above this speed it isn't walking (m/s).
+    public var walkingMaxSpeed: Double = 2.2
+    /// Per-event gait veto: airborne/drop/impact events whose surrounding ±2 s has median
+    /// gait ρ ≥ this are walking artifacts (pocket slap), not tricks. Real-data calibrated:
+    /// skating ρ p75 ≈ 0.28, walking median ≈ 0.46.
+    public var gaitVetoRho: Float = 0.33
 
     // ── Airborne detection (03 §3) ─────────────────────────────────────────
     public var popJerkThreshold: Float = 90  // g/s on raw magnitude
@@ -42,7 +57,7 @@ public struct DetectionTuning: Sendable, Codable, Equatable {
     public var unconfirmedBelowConfidence: Double = 0.6
 
     // ── Impacts (03 §4) ────────────────────────────────────────────────────
-    public var impactThresholdG: Float = 4
+    public var impactThresholdG: Float = 6
     public var impactSeparation: Double = 0.3
     public var clipFraction: Float = 0.99
 
@@ -118,6 +133,12 @@ public struct DetectionTuning: Sendable, Codable, Equatable {
         f(.walkingCadenceHz, &t.walkingCadenceHz)
         f(.stateHold, &t.stateHold)
         f(.autoPauseIdle, &t.autoPauseIdle)
+        f(.gaitPeriodicityMin, &t.gaitPeriodicityMin)
+        f(.gaitEnvelopeRMSMin, &t.gaitEnvelopeRMSMin)
+        f(.gaitLagMin, &t.gaitLagMin)
+        f(.gaitLagMax, &t.gaitLagMax)
+        f(.walkingMaxSpeed, &t.walkingMaxSpeed)
+        f(.gaitVetoRho, &t.gaitVetoRho)
         f(.popJerkThreshold, &t.popJerkThreshold)
         f(.popAccelThreshold, &t.popAccelThreshold)
         f(.flightAccelThreshold, &t.flightAccelThreshold)

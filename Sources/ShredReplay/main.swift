@@ -45,6 +45,7 @@ var tuning = DetectionTuning()
 var reportPath: String?
 var enforceGates = false
 var assumeRiding = false
+var verbose = false
 while !args.isEmpty {
     switch args.removeFirst() {
     case "--tuning":
@@ -56,6 +57,8 @@ while !args.isEmpty {
         enforceGates = true
     case "--assume-riding":
         assumeRiding = true
+    case "--verbose":
+        verbose = true
     case let other:
         FileHandle.standardError.write(Data("unknown option \(other)\n".utf8))
         exit(2)
@@ -77,6 +80,12 @@ do {
         let evts = result.events.map { "\($0.kind.rawValue)@\(Int($0.tStart))s" }
             .joined(separator: " ")
         print("• \(fixture.meta.name): \(result.events.count) events  [\(evts)]")
+        if verbose {
+            for a in result.activityIntervals {
+                print(String(format: "    %-8@ %6.1fs – %6.1fs", a.state.rawValue as NSString, a.tStart, a.tEnd))
+            }
+            print("    pushes: \(result.pushCount)  topSpeed: \(String(format: "%.1f", result.topSpeed))")
+        }
     }
     let report = Replay.aggregate(scores)
     print("")

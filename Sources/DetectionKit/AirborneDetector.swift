@@ -177,6 +177,16 @@ final class AirborneDetector {
             direction: direction,
             hadPop: tPop != nil)
 
+        // Kick-turn discrimination (real-session 2026-08-01): a sub-0.2 s "air" with
+        // ≥ 60° of yaw is a pivot on the tail wheels, not an ollie.
+        if airtime < 0.2 && absDeg >= 60 {
+            pending.append(
+                DetectedEvent(
+                    kind: .rotationOnly, tStart: tUp, tEnd: tLand, confidence: 0.7,
+                    metrics: .rotationOnly(
+                        EventMetrics.RotationOnly(rotationDegrees: deltaDeg, window: airtime))))
+            return
+        }
         let kind: EventKind = tPop == nil ? .drop : .airborne
         let wrapped: EventMetrics =
             kind == .drop

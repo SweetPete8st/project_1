@@ -7,6 +7,10 @@ import ShredCore
 final class ActivitySegmenter {
     private let tuning: DetectionTuning
     private let evalInterval = 0.5  // 2 Hz
+    /// Envelope decimation derived from the capture rate (hardcoding broke 100 Hz input:
+    /// stride lags must be computed at the ACTUAL envelope rate).
+    private let envStride: Int
+    private let envRate: Double
 
     private(set) var state: ActivityState = .unknown
     private(set) var intervals: [ActivityInterval] = []
@@ -23,9 +27,17 @@ final class ActivitySegmenter {
     private var bobPeakTimes: [Double] = []
     private var lastVertLow: Float = 0
     private var vertRising = false
+    // Gait envelope ring (|rawMag − 1|, decimated to ~30 Hz, ~3 s) for stride
+    // autocorrelation — the walking-vs-rolling discriminator (real-data driven).
+    private var envRing: [Float] = []
+    private var envDecimate = 0
+    /// 2 Hz history of gait ρ for the per-event veto.
+    private var rhoHistory = SampleRing(capacity: 240)
 
-    init(tuning: DetectionTuning) {
+    init(tuning: DetectionTuning, sampleRate: Double) {
         self.tuning = tuning
+        self.envStride = max(1, Int((sampleRate / 30.0).rounded()))
+        self.envRate = sampleRate / Double(self.envStride)
     }
 
     func push(speed: Double, at t: Double) {
@@ -35,9 +47,47 @@ final class ActivitySegmenter {
 
     func push(frame: ProcessedFrame) {
         trackBob(frame)
+        trackEnvelope(frame)
         guard lastEval == nil || frame.t - lastEval! >= evalInterval else { return }
         lastEval = frame.t
         evaluate(frame)
+    }
+
+    private func trackEnvelope(_ f: ProcessedFrame) {
+        envDecimate += 1
+        if envDecimate % envStride == 0 {
+            envRing.append(abs(f.aRawMag - 1))
+            let cap = Int(3.0 * envRate)
+            if envRing.count > cap {
+                envRing.removeFirst(envRing.count - cap)
+            }
+        }
+    }
+
+    /// Peak normalized autocorrelation of the impact envelope over the stride-lag band,
+    /// plus the envelope RMS. Walking: ρ ≈ 0.5–0.8 at ~1 s lag. Rolling: ρ < 0.3.
+    private func gaitPeriodicity() -> (rho: Float, rms: Float) {
+        let n = envRing.count
+        guard n >= Int(2.0 * envRate) else { return (0, 0) }
+        let mean = envRing.reduce(0, +) / Float(n)
+        let centered = envRing.map { $0 - mean }
+        var energy: Float = 0
+        for v in centered { energy += v * v }
+        guard energy > 1e-6 else { return (0, 0) }
+        let rms = (energy / Float(n)).squareRoot()
+        var best: Float = 0
+        let lagLo = Int(tuning.gaitLagMin * envRate)
+        let lagHi = min(Int(tuning.gaitLagMax * envRate), n - Int(0.5 * envRate))
+        guard lagHi > lagLo else { return (0, rms) }
+        for lag in lagLo...lagHi {
+            var acc: Float = 0
+            for i in 0..<(n - lag) {
+                acc += centered[i] * centered[i + lag]
+            }
+            let rho = acc / energy
+            if rho > best { best = rho }
+        }
+        return (best, rms)
     }
 
     /// Walking produces a 1–2.5 Hz vertical bob; count rising-edge peaks of the low-passed
@@ -65,12 +115,23 @@ final class ActivitySegmenter {
         let speedFresh = latestSpeedTime >= 0 && f.t - latestSpeedTime < 3
         let speed = speedFresh ? latestSpeed : -1
         let cadence = cadenceHz(at: f.t)
+        let (gaitRho, envRMS) = gaitPeriodicity()
+        rhoHistory.push(t: f.t, value: Double(gaitRho))
+        // Real walking defeats the band-RMS test (heel strikes are broadband impulses);
+        // stride periodicity is the reliable tell, with GNSS speed as an override.
+        let periodicGait =
+            gaitRho >= tuning.gaitPeriodicityMin && envRMS >= tuning.gaitEnvelopeRMSMin
+            && (speed < 0 || speed < tuning.walkingMaxSpeed)
 
         let target: ActivityState
-        if f.bandRMS > tuning.vibrationRidingRMS && (speed < 0 || speed > tuning.idleMaxSpeed) {
+        if periodicGait {
+            target = .walking
+        } else if f.bandRMS > tuning.vibrationRidingRMS
+            && (speed < 0 || speed > tuning.idleMaxSpeed)
+        {
             target = .riding
         } else if cadence > tuning.walkingCadenceHz && f.bandRMS < tuning.vibrationRidingRMS / 2 {
-            target = .walking
+            target = .walking  // gentle-gait fallback (low-impulse walkers)
         } else if f.bandRMS < tuning.idleRMS && (speed < 0 || speed < tuning.idleMaxSpeed) {
             target = .idle
         } else {
@@ -98,6 +159,16 @@ final class ActivitySegmenter {
         closeInterval(at: t)
         stateSince = t
         return intervals
+    }
+
+    /// Median gait ρ over a window — the per-event walking veto (docs: real-session
+    /// calibration 2026-08-01).
+    func gaitRhoMedian(from: Double, to: Double) -> Double {
+        rhoHistory.median(from: from, to: to) ?? 0
+    }
+
+    func gaitRhoMax(from: Double, to: Double) -> Double {
+        rhoHistory.max(from: from, to: to) ?? 0
     }
 
     /// Was the rider in `state` (by committed segmentation) at time `t`? Used by detectors

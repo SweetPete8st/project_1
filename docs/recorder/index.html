@@ -99,11 +99,33 @@
   let recording = false, t0 = 0, wakeLock = null, watchId = null, timerId = null;
   let peakG = 0, airCount = 0, bestAir = 0;
 
-  // ── Live airborne detector, retuned on real 60 Hz iPhone data (2026-08-01 session):
-  //    real jumps rise at ~20 g/s, not the synthetic 60+; the free-fall window is the
-  //    primary evidence and the landing spike confirms. ──
+  // ── Live airborne detector v3 (retuned on real sessions): free-fall window primary,
+  //    landing confirms, and a walking veto — stride-periodic pocket slap is not an air. ──
   const det = { phase: 'ground', tUp: 0, lowFrames: 0, lastMag: 1 };
+  const env = [];  // |mag−1| at ~30 Hz, 3 s ring, for gait autocorrelation
+  let envTick = 0, gaitRho = 0, lastGaitEval = 0;
+  function trackGait(t, mag) {
+    if (++envTick % 2 === 0) {
+      env.push(Math.abs(mag - 1));
+      if (env.length > 90) env.shift();
+    }
+    if (t - lastGaitEval < 0.5 || env.length < 60) return;
+    lastGaitEval = t;
+    const mean = env.reduce((a, b) => a + b) / env.length;
+    const c = env.map(v => v - mean);
+    let energy = 0;
+    for (const v of c) energy += v * v;
+    if (energy < 1e-6) { gaitRho = 0; return; }
+    let best = 0;
+    for (let lag = 10; lag <= Math.min(39, env.length - 15); lag++) {
+      let acc = 0;
+      for (let i = 0; i < c.length - lag; i++) acc += c[i] * c[i + lag];
+      if (acc / energy > best) best = acc / energy;
+    }
+    gaitRho = best;
+  }
   function feedDetector(t, mag) {
+    trackGait(t, mag);
     det.lastMag = mag;
     switch (det.phase) {
       case 'ground':
@@ -116,7 +138,11 @@
         } else if (mag > 1.7) {
           const airtime = t - det.tUp;
           det.phase = 'ground';
-          if (airtime >= 0.15 && det.lowFrames >= 6) registerAir(t, airtime);
+          // Gait veto: while the impact envelope is stride-periodic (walking), pocket
+          // slap mimics small airs — suppress.
+          if (airtime >= 0.12 && det.lowFrames >= 6 && gaitRho < 0.35) {
+            registerAir(t, airtime);
+          }
         } else if (t - det.tUp > 0.35 && det.lowFrames < 4) {
           det.phase = 'ground';   // noisy flicker, not flight
         }
