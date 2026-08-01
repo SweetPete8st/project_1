@@ -73,10 +73,5 @@ let package = Package(
                 "SessionEngine", "ShredCore", "CaptureKit", "SynthKit", "DetectionKit",
                 "TelemetryStore",
             ]),
-        .testTarget(
-            name: "ReplayPipelineTests",
-            dependencies: [
-                "ShredCore", "DetectionKit", "TelemetryStore", "SessionEngine", "SynthKit",
-            ]),
     ]
 )

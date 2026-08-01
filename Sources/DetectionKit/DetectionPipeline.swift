@@ -86,7 +86,10 @@ public final class DetectionPipeline {
         lastT = f.t
         if firstT == nil { firstT = f.t }
 
-        segmenter.push(speed: speed.currentSpeed, at: f.t)
+        let knownSpeed = speed.currentSpeedOrUnknown
+        if knownSpeed >= 0 {
+            segmenter.push(speed: knownSpeed, at: f.t)
+        }
         segmenter.push(frame: f)
         let activity = segmenter.state
 

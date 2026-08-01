@@ -5,6 +5,19 @@ import TelemetryStore
 // shred-replay — corpus replay + scoring CLI (docs/spec/08 §3).
 // Usage: shred-replay run <corpus-dir> [--tuning file.json] [--report out.json] [--gates]
 var args = Array(CommandLine.arguments.dropFirst())
+if args.first == "dump-tuning" {
+    // Writes the current default DetectionTuning as JSON (bundled as the app's tuning
+    // resource so shipped defaults always match code defaults).
+    let enc = JSONEncoder()
+    enc.outputFormatting = [.prettyPrinted, .sortedKeys]
+    let data = try! enc.encode(DetectionTuning())
+    if args.count >= 2 {
+        try! data.write(to: URL(fileURLWithPath: args[1]))
+    } else {
+        print(String(data: data, encoding: .utf8)!)
+    }
+    exit(0)
+}
 guard args.first == "run", args.count >= 2 else {
     FileHandle.standardError.write(Data("""
     usage: shred-replay run <corpus-dir> [--tuning file.json] [--report out.json] [--gates]

@@ -1,31 +1,67 @@
 # SHRED — Skateboarding High-Rate Event Detection
 
-**SHRED** is a production iOS application that turns an iPhone 17 riding in your pocket into a
+**SHRED** is a production iOS application that turns an iPhone riding in your pocket into a
 full skateboarding telemetry rig: g-force, ollie/airtime detection, speed, deceleration and
 powerslides, GPS route mapping, regular-vs-switch stance time (calibrated from the pocket the
-phone was placed in), spin/rotation tracking, elevation, pushes, and session analytics.
+phone was placed in), spin/rotation tracking, elevation, pushes, automatic session start from
+your push rhythm, and session analytics.
 
-No board-mounted hardware. No account required. Everything on-device by default.
+No board-mounted hardware. No account. Everything on-device.
+
+## Status
+
+Implemented and verified (Swift 6, strict concurrency, **41 tests green on Linux**, synthetic
+replay corpus passing every accuracy gate):
+
+- **ShredCore** — portable math/frame/tuning types
+- **TelemetryStore** — `.shredchunk` binary telemetry codec (crc32, torn-write recovery),
+  chunk store, checkpoints, fixture bundles
+- **DetectionKit** — the full pipeline: activity segmentation, airborne (ollie/drop) with
+  in-flight rotation, impacts with clip labeling, pocket-calibrated stance, Kalman speed
+  fusion + powerslide discrimination, pushes, bails, elevation fusion, event arbitration —
+  plus the placement-independent **AutoStartDetector**
+- **SessionEngine** — session lifecycle actor (manual + auto-start paths, backdating,
+  duplicate prevention, chunked persistence, kill recovery)
+- **RouteKit** — routes, distance, simplification, spot clustering
+- **SynthKit / fixture-synth / shred-replay** — physically-modeled synthetic corpus +
+  scoring harness with hard accuracy gates (CI-enforced)
+- **iOS layer** — CaptureKit (Core Motion/Location adapters), HealthBridge, FeatureUI
+  (SwiftUI app: onboarding-lite home, calibration flow, live screen, summary with map /
+  stance donut / charts / timeline, history, PRs, settings), Live Activity, app target
+
+Synthetic corpus metrics (gate-enforced in CI): airborne/drop/powerslide/decel/bail
+**1.000 precision & recall**, airtime MAE **1 ms**, rotation buckets **100%**, stance time
+**0.966**. Real-world validation is the next milestone — see `docs/field-protocol.md`
+(these numbers are synthetic-tier; field targets live in docs/spec/08 §4).
+
+## Building
+
+**Core (any platform, incl. Linux):**
+```sh
+swift build && swift test
+swift run fixture-synth fixtures
+swift run shred-replay run fixtures --gates
+```
+
+**iOS app (Mac + Xcode 16+):**
+```sh
+brew install xcodegen
+xcodegen generate
+open Shred.xcodeproj    # scheme: Shred
+```
+
+The iOS layer was authored in a Linux environment and compiles there only as guarded stubs —
+its first Xcode build may need small fixes; everything below FeatureUI is machine-verified.
 
 ## Repository layout
 
 ```
-docs/spec/          Full production specification (start at 00-product-overview.md)
-docs/spec/00-product-overview.md      Vision, personas, competitive landscape
-docs/spec/01-requirements.md          Functional + non-functional requirements (FR/NFR ids)
-docs/spec/02-sensor-platform.md       iPhone 17 sensor array, iOS API grounding, sampling plan
-docs/spec/03-detection-algorithms.md  Signal pipeline: ollies, g-force, stance, rotation, decel
-docs/spec/04-architecture.md          App architecture, modules, concurrency, background model
-docs/spec/05-data-model.md            Schemas, binary telemetry format, units, coordinate frames
-docs/spec/06-ux-spec.md               Screens, flows, Live Activity, calibration UX
-docs/spec/07-privacy-security.md      Permissions, data handling, App Store privacy
-docs/spec/08-testing-validation.md    Replay harness, fixtures, field validation protocol, CI
-docs/spec/09-delivery-plan.md         Milestones + execution guide for the implementing session
+docs/spec/            Product specification (00–09; start at 00-product-overview.md)
+docs/decisions/       ADRs — deviations from spec, with rationale
+docs/integration/     Auto-start feature integration report
+docs/field-protocol.md  Hardware validation script (M2 gate)
+Sources/              SPM targets (see docs/decisions/ADR-0001)
+Tests/                swift-testing suites
+App/                  iOS app + Live Activity extension (XcodeGen: project.yml)
+fixtures/             Synthetic corpus (regenerate with fixture-synth)
 ```
-
-## For the implementing session
-
-Read `docs/spec/09-delivery-plan.md` first — it defines milestone order, acceptance criteria,
-and how to develop and validate the detection pipeline **without physical hardware** using the
-replay harness and recorded sensor fixtures. Requirements are referenced by ID (e.g. FR-12)
-throughout; do not renumber them.

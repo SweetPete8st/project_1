@@ -41,6 +41,9 @@ final class SpeedFusion {
     private var pending: [DetectedEvent] = []
 
     var currentSpeed: Double { max(0, v) }
+    /// −1 until the first GNSS update initializes the filter — consumers must treat
+    /// "unknown" differently from "stationary" (the segmenter's riding gate).
+    var currentSpeedOrUnknown: Double { initialized ? max(0, v) : -1 }
 
     init(tuning: DetectionTuning, sampleRate: Double) {
         self.tuning = tuning

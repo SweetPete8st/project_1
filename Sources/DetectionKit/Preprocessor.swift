@@ -87,16 +87,19 @@ final class Preprocessor {
         }
         // Use the paired raw sample only while it's fresh; a stale hold (raw stream lagging
         // or running ahead under concurrent delivery) is worse than the reconstruction.
+        let reconstruction = rawMag
         if let m = lastRawMag, let t = lastRawTime, motion.sensorTime - t <= 3.0 / sampleRate {
             rawMag = m
         }
 
-        // Jerk on the raw magnitude, frame cadence.
+        // Jerk always derives from the reconstruction series: it exists at every motion
+        // frame with no pairing gaps, so the derivative can't glitch when the raw stream
+        // lags/leads under concurrent delivery (paired raw is for amplitude peaks only).
         var jerk: Float = 0
         if let prev = previousRawMag {
-            jerk = Float((Double(rawMag - prev)) * sampleRate)
+            jerk = Float((Double(reconstruction - prev)) * sampleRate)
         }
-        previousRawMag = rawMag
+        previousRawMag = reconstruction
         previousRawTime = motion.sensorTime
 
         // Filters.
