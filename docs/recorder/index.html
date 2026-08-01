@@ -99,28 +99,26 @@
   let recording = false, t0 = 0, wakeLock = null, watchId = null, timerId = null;
   let peakG = 0, airCount = 0, bestAir = 0;
 
-  // ── Simplified live airborne detector (JS port of DetectionKit's state machine;
-  //    thresholds match DetectionTuning defaults, 60 Hz-friendly windows) ──
-  const det = { phase: 'ground', tUp: 0, lowFrames: 0, lastMag: 1, popSeen: false, popT: 0 };
+  // ── Live airborne detector, retuned on real 60 Hz iPhone data (2026-08-01 session):
+  //    real jumps rise at ~20 g/s, not the synthetic 60+; the free-fall window is the
+  //    primary evidence and the landing spike confirms. ──
+  const det = { phase: 'ground', tUp: 0, lowFrames: 0, lastMag: 1 };
   function feedDetector(t, mag) {
-    const jerk = (mag - det.lastMag) * 60;    // g/s at ~60 Hz
     det.lastMag = mag;
     switch (det.phase) {
       case 'ground':
-        if (jerk > 60 && mag > 1.8) { det.popSeen = true; det.popT = t; det.phase = 'pop'; }
-        break;
-      case 'pop':
         if (mag < 0.45) { det.phase = 'flight'; det.tUp = t; det.lowFrames = 1; }
-        else if (t - det.popT > 0.25) det.phase = 'ground';
         break;
       case 'flight':
         if (mag < 0.45) {
           det.lowFrames++;
-          if (t - det.tUp > 1.2) det.phase = 'ground';
-        } else if (mag > 2.2) {
+          if (t - det.tUp > 1.2) det.phase = 'ground';   // implausible; abandon
+        } else if (mag > 1.7) {
           const airtime = t - det.tUp;
           det.phase = 'ground';
-          if (airtime >= 0.10 && det.lowFrames >= 5) registerAir(t, airtime);
+          if (airtime >= 0.15 && det.lowFrames >= 6) registerAir(t, airtime);
+        } else if (t - det.tUp > 0.35 && det.lowFrames < 4) {
+          det.phase = 'ground';   // noisy flicker, not flight
         }
         break;
     }

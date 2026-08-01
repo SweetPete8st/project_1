@@ -27,12 +27,13 @@ public enum Replay {
     }
 
     public static func run(
-        fixture: FixtureIO.Fixture, tuning: DetectionTuning = DetectionTuning()
+        fixture: FixtureIO.Fixture, tuning: DetectionTuning = DetectionTuning(),
+        assumeRiding: Bool = false
     ) -> DetectionResult {
         let pipeline = DetectionPipeline(
             tuning: tuning, sampleRate: fixture.meta.sampleRate,
             calibration: deriveCalibration(fixture),
-            capabilities: DeviceCapabilities())
+            capabilities: DeviceCapabilities(), assumeRiding: assumeRiding)
         // Merge streams in time order, motion driving the clock.
         var fixIdx = 0
         var baroIdx = 0

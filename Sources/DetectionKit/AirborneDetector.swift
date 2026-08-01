@@ -63,20 +63,18 @@ final class AirborneDetector {
                 if f.t - tUp > tuning.airtimeMax {
                     phase = .ground  // implausible; abandon
                 }
-            } else if f.aRawMag > tuning.landAccelThreshold && f.jerk.magnitude > tuning.landJerkThreshold {
+            } else if f.aRawMag > tuning.landExitThreshold {
+                // Left the free-fall band with real loading. Two landing paths:
+                //  - sharp (synthetic-grade / hard board landings): spike + jerk right now;
+                //  - soft (real 60 Hz human landings ramp over many frames): provisional
+                //    landing here, confirmed by peak ≥ landConfirmG within the peak window
+                //    (checked at emit).
                 let minStreak = Int(tuning.flightMinDuration * sampleRate)
                 if lowStreak >= minStreak {
                     phase = .landing(
                         tPop: tPop, tUp: tUp, tLand: f.t, yawAtTakeoff: yawTakeoff,
                         yawAtLand: f.yawUnwrapped, peakG: f.aRawMag, peakJerk: f.jerk.magnitude)
                 } else {
-                    phase = .ground
-                }
-            } else if f.aRawMag > tuning.flightAccelThreshold * 2 {
-                // Left the free-fall band without a landing signature (leg noise); if the
-                // streak was already valid keep waiting for the true landing spike briefly.
-                let minStreak = Int(tuning.flightMinDuration * sampleRate)
-                if lowStreak < minStreak {
                     phase = .ground
                 }
             }
@@ -130,6 +128,9 @@ final class AirborneDetector {
     ) {
         let airtime = tLand - tUp
         guard airtime >= tuning.airtimeMin && airtime <= tuning.airtimeMax else { return }
+        // Soft-landing confirmation: without at least this much loading after the flight,
+        // the "flight" was pocket noise, not an air.
+        guard peakG >= tuning.landConfirmG else { return }
 
         // Rotation with pre-pop drift correction (03 §5).
         let refT = tPop ?? tUp

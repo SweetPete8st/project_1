@@ -56,14 +56,20 @@ public final class DetectionPipeline {
     private var lastT: Double = 0
     private var firstT: Double?
 
+    /// Debug/bench-test only (replay `--assume-riding`): overrides the activity gate so
+    /// stationary indoor recordings exercise the trick detectors. Never set in production.
+    public let assumeRiding: Bool
+
     public init(
         tuning: DetectionTuning = DetectionTuning(),
         sampleRate: Double = 100,
         calibration: CalibrationRecord? = nil,
-        capabilities: DeviceCapabilities = DeviceCapabilities()
+        capabilities: DeviceCapabilities = DeviceCapabilities(),
+        assumeRiding: Bool = false
     ) {
         self.tuning = tuning
         self.sampleRate = sampleRate
+        self.assumeRiding = assumeRiding
         self.preprocessor = Preprocessor(tuning: tuning, sampleRate: sampleRate)
         self.segmenter = ActivitySegmenter(tuning: tuning)
         self.airborne = AirborneDetector(
@@ -91,7 +97,7 @@ public final class DetectionPipeline {
             segmenter.push(speed: knownSpeed, at: f.t)
         }
         segmenter.push(frame: f)
-        let activity = segmenter.state
+        let activity = assumeRiding ? .riding : segmenter.state
 
         airborne.push(frame: f, activity: activity)
         impacts.push(frame: f)

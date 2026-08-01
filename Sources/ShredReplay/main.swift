@@ -18,6 +18,21 @@ if args.first == "dump-tuning" {
     }
     exit(0)
 }
+if args.first == "import-web" {
+    // shred-replay import-web <recording.json> <out.shredfix>
+    guard args.count == 3 else {
+        FileHandle.standardError.write(
+            Data("usage: shred-replay import-web <recording.json> <out.shredfix>\n".utf8))
+        exit(2)
+    }
+    do {
+        try WebRecordingImport.run(inputPath: args[1], outputPath: args[2])
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data("import-web failed: \(error)\n".utf8))
+        exit(1)
+    }
+}
 guard args.first == "run", args.count >= 2 else {
     FileHandle.standardError.write(Data("""
     usage: shred-replay run <corpus-dir> [--tuning file.json] [--report out.json] [--gates]
@@ -29,6 +44,7 @@ let corpus = URL(fileURLWithPath: args.removeFirst(), isDirectory: true)
 var tuning = DetectionTuning()
 var reportPath: String?
 var enforceGates = false
+var assumeRiding = false
 while !args.isEmpty {
     switch args.removeFirst() {
     case "--tuning":
@@ -38,6 +54,8 @@ while !args.isEmpty {
         reportPath = args.removeFirst()
     case "--gates":
         enforceGates = true
+    case "--assume-riding":
+        assumeRiding = true
     case let other:
         FileHandle.standardError.write(Data("unknown option \(other)\n".utf8))
         exit(2)
@@ -53,7 +71,7 @@ do {
     var scores = [Replay.FixtureScore]()
     for url in fixtures {
         let fixture = try FixtureIO.read(from: url)
-        let result = Replay.run(fixture: fixture, tuning: tuning)
+        let result = Replay.run(fixture: fixture, tuning: tuning, assumeRiding: assumeRiding)
         let score = Replay.score(fixture: fixture, result: result)
         scores.append(score)
         let evts = result.events.map { "\($0.kind.rawValue)@\(Int($0.tStart))s" }

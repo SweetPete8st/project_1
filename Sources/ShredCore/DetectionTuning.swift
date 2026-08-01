@@ -30,7 +30,12 @@ public struct DetectionTuning: Sendable, Codable, Equatable {
     public var dropFlightMinDuration: Double = 0.18
     public var landAccelThreshold: Float = 2.2
     public var landJerkThreshold: Float = 60
-    public var landingPeakWindow: Double = 0.15
+    /// Soft-landing path (real 60 Hz data, 2026-08-01 session): leaving the free-fall band
+    /// above this opens a provisional landing…
+    public var landExitThreshold: Float = 1.1
+    /// …which must reach this peak within landingPeakWindow to confirm (else discarded).
+    public var landConfirmG: Float = 1.35
+    public var landingPeakWindow: Double = 0.25
     public var airtimeMin: Double = 0.12
     public var airtimeMax: Double = 1.2
     public var postLandingRideCheck: Double = 1.0
@@ -121,6 +126,8 @@ public struct DetectionTuning: Sendable, Codable, Equatable {
         f(.dropFlightMinDuration, &t.dropFlightMinDuration)
         f(.landAccelThreshold, &t.landAccelThreshold)
         f(.landJerkThreshold, &t.landJerkThreshold)
+        f(.landExitThreshold, &t.landExitThreshold)
+        f(.landConfirmG, &t.landConfirmG)
         f(.landingPeakWindow, &t.landingPeakWindow)
         f(.airtimeMin, &t.airtimeMin)
         f(.airtimeMax, &t.airtimeMax)
