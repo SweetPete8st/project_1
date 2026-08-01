@@ -52,7 +52,7 @@
 </style>
 </head>
 <body>
-  <h1>SHRED <span>RECORDER</span> <small style="font-size:11px;color:#666">v4</small></h1>
+  <h1>SHRED <span>RECORDER</span> <small style="font-size:11px;color:#666">v5</small></h1>
   <p class="sub">
     Browser-based session recorder + live air detection. Records motion (~60&nbsp;Hz) and GPS
     for tuning the real app. The screen must stay on while recording.
@@ -288,15 +288,44 @@
     if (motion.length % 30 === 0) $('samples').textContent = motion.length.toLocaleString();
   }
 
+  let lastFixAt = 0, gpsRetryId = null;
   function onGPS(pos) {
     if (!recording) return;
     const t = (Date.now() - t0) / 1000;
+    lastFixAt = Date.now();
     const c = pos.coords;
     gps.push([+t.toFixed(2), c.latitude, c.longitude, c.accuracy,
               c.altitude, c.altitudeAccuracy, c.speed, c.heading]);
-    if (c.speed != null && c.speed >= 0) {
-      $('speed').textContent = (c.speed * 3.6).toFixed(1) + ' km/h';
+    $('speed').textContent = (c.speed != null && c.speed >= 0)
+      ? (c.speed * 3.6).toFixed(1) + ' km/h' : `GPS ✓ ${gps.length}`;
+  }
+  function onGPSError(err) {
+    $('speed').textContent = err.code === 1 ? 'GPS DENIED' : 'GPS…';
+    if (err.code === 1) {
+      $('status').textContent =
+        'Location denied — Settings ▸ Privacy ▸ Location ▸ Safari Websites ▸ While Using (+ Precise ON), then reload.';
     }
+  }
+  function startGPS() {
+    if (!navigator.geolocation) return;
+    // Force the prompt / warm the radio, then stream.
+    navigator.geolocation.getCurrentPosition(onGPS, onGPSError,
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    if (watchId != null) navigator.geolocation.clearWatch(watchId);
+    watchId = navigator.geolocation.watchPosition(onGPS, onGPSError,
+      { enableHighAccuracy: true, maximumAge: 0 });
+    // Watchdog: if fixes stop for 12 s, tear down and re-watch (v5 — a full session
+    // recorded zero fixes while the permission was granted).
+    clearInterval(gpsRetryId);
+    gpsRetryId = setInterval(() => {
+      if (!recording) return;
+      if (Date.now() - lastFixAt > 12000) {
+        if ($('speed').textContent.indexOf('DENIED') < 0) $('speed').textContent = 'GPS retry…';
+        navigator.geolocation.clearWatch(watchId);
+        watchId = navigator.geolocation.watchPosition(onGPS, onGPSError,
+          { enableHighAccuracy: true, maximumAge: 0 });
+      }
+    }, 12000);
   }
 
   async function start() {
@@ -318,11 +347,8 @@
     recording = true;
     autosaveId = setInterval(() => autosave(false), 8000);
     window.addEventListener('devicemotion', onMotion);
-    if (navigator.geolocation) {
-      watchId = navigator.geolocation.watchPosition(onGPS,
-        () => { $('status').textContent = 'GPS unavailable — motion still recording.'; },
-        { enableHighAccuracy: true, maximumAge: 0 });
-    }
+    $('speed').textContent = 'GPS…';
+    startGPS();
     try { wakeLock = await navigator.wakeLock?.request('screen'); } catch (_) {}
     timerId = setInterval(() => { $('elapsed').textContent = fmtT((Date.now()-t0)/1000); }, 1000);
     $('startBtn').style.display = 'none';
@@ -334,6 +360,7 @@
   function stop() {
     recording = false;
     clearInterval(autosaveId);
+    clearInterval(gpsRetryId);
     autosave(true);
     window.removeEventListener('devicemotion', onMotion);
     if (watchId != null) navigator.geolocation.clearWatch(watchId);
