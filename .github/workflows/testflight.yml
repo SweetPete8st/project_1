@@ -1,0 +1,90 @@
+name: TestFlight
+
+# Signed build + TestFlight upload from a CI Mac — no local Mac required.
+# Setup (one-time, works from a phone browser): docs/testing-without-a-mac.md
+# Requires repo secrets: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, APPLE_TEAM_ID
+# Optional repo variable: BUNDLE_ID_PREFIX (defaults to com.shred)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Apply bundle-id prefix
+        env:
+          PREFIX: ${{ vars.BUNDLE_ID_PREFIX }}
+        run: |
+          if [ -n "$PREFIX" ]; then
+            sed -i '' "s/bundleIdPrefix: com.shred/bundleIdPrefix: $PREFIX/" project.yml
+            echo "Using bundle prefix: $PREFIX"
+          fi
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Write App Store Connect API key
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          mkdir -p "$HOME/private_keys"
+          # Accept either the raw .p8 contents or base64 of it.
+          if [[ "$ASC_KEY_P8" == *"BEGIN PRIVATE KEY"* ]]; then
+            printf '%s\n' "$ASC_KEY_P8" > "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          else
+            printf '%s' "$ASC_KEY_P8" | base64 -d > "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          fi
+
+      - name: Archive (cloud-managed automatic signing)
+        run: |
+          xcodebuild archive \
+            -project Shred.xcodeproj \
+            -scheme Shred \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Shred.xcarchive \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8" \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}" \
+            DEVELOPMENT_TEAM="${{ secrets.APPLE_TEAM_ID }}" \
+            CODE_SIGN_STYLE=Automatic
+
+      - name: Export & upload to TestFlight
+        run: |
+          cat > build/export.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>manageAppVersionAndBuildNumber</key><true/>
+            <key>teamID</key><string>${{ secrets.APPLE_TEAM_ID }}</string>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath build/Shred.xcarchive \
+            -exportOptionsPlist build/export.plist \
+            -exportPath build/out \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8" \
+            -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.ASC_ISSUER_ID }}"

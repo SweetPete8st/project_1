@@ -24,7 +24,7 @@ public struct AutoStartMetadata: Sendable, Codable, Equatable {
 
 /// The persisted outcome of a session (ADR-0005: JSON archive; SwiftData mirror is a later
 /// milestone). Everything the summary screen renders comes from here.
-public struct SessionRecord: Sendable, Codable, Identifiable {
+public struct SessionRecord: Sendable, Codable, Identifiable, Equatable {
     public var id: UUID
     public var state: SessionState
     public var startSource: StartSource

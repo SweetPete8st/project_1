@@ -1,4 +1,7 @@
-#if os(iOS) && canImport(BackgroundTasks)
+// BGContinuedProcessingTask is an iOS 26 SDK type: the compiler(>=6.2) condition compiles
+// the real implementation only under Xcode 26+ (older SDKs get the no-op fallback below,
+// where arming simply pauses in background — same UX contract, honestly stated).
+#if os(iOS) && canImport(BackgroundTasks) && compiler(>=6.2)
 import BackgroundTasks
 import Foundation
 
@@ -80,5 +83,18 @@ public final class AutoStartBackgroundService {
         }
         task.setTaskCompleted(success: true)
     }
+}
+#elseif os(iOS)
+import Foundation
+
+/// Fallback for SDKs without BGContinuedProcessingTask (pre-iOS-26 toolchains): armed
+/// detection pauses in background and resumes on foreground; the UI copy reflects this.
+@MainActor
+public final class AutoStartBackgroundService {
+    public static let shared = AutoStartBackgroundService()
+    private init() {}
+    public func register() {}
+    public func submitListeningWindow() {}
+    public func armedStateChanged(armed: Bool) {}
 }
 #endif
