@@ -52,15 +52,22 @@
 </style>
 </head>
 <body>
-  <h1>SHRED <span>RECORDER</span></h1>
+  <h1>SHRED <span>RECORDER</span> <small style="font-size:11px;color:#666">v4</small></h1>
   <p class="sub">
     Browser-based session recorder + live air detection. Records motion (~60&nbsp;Hz) and GPS
     for tuning the real app. The screen must stay on while recording.
   </p>
 
   <button id="startBtn">Start Recording</button>
-  <button id="stopBtn">■ Stop</button>
+  <button id="stopBtn">■ Hold to Stop</button>
   <div id="status"></div>
+  <div id="recoverBar" style="display:none;background:#1f6f43;border-radius:12px;padding:12px">
+    <div style="font-weight:700" id="recoverText">Unsaved session found</div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button id="recoverExport" style="background:#0d0d0f;font-size:15px;padding:10px">Export it</button>
+      <button id="recoverDiscard" style="background:#333;font-size:15px;padding:10px">Discard</button>
+    </div>
+  </div>
   <div id="airBanner"></div>
 
   <div class="grid">
@@ -95,9 +102,100 @@
 (() => {
   const G = 9.80665;
   const $ = id => document.getElementById(id);
-  let motion = [], gps = [], events = [];
+  let motion = [], gps = [], events = [], gaps = [];
   let recording = false, t0 = 0, wakeLock = null, watchId = null, timerId = null;
   let peakG = 0, airCount = 0, bestAir = 0;
+  let sid = null, savedMotion = 0, savedGps = 0, autosaveId = null, hiddenAt = null;
+
+  // ── Crash-proof autosave (v4): chunks persist to IndexedDB every 8 s ──
+  let db = null;
+  const dbReady = new Promise(res => {
+    const rq = indexedDB.open('shred-recorder', 1);
+    rq.onupgradeneeded = () => {
+      rq.result.createObjectStore('chunks', { autoIncrement: true });
+      rq.result.createObjectStore('sessions', { keyPath: 'sid' });
+    };
+    rq.onsuccess = () => { db = rq.result; res(); };
+    rq.onerror = () => res();
+  });
+  function autosave(final) {
+    if (!db || !sid) return;
+    if (motion.length > savedMotion || gps.length > savedGps || final) {
+      const tx = db.transaction(['chunks', 'sessions'], 'readwrite');
+      tx.objectStore('chunks').add({
+        sid, motion: motion.slice(savedMotion), gps: gps.slice(savedGps),
+        events: [], gaps
+      });
+      tx.objectStore('sessions').put({
+        sid, startedAt: sid, status: final ? 'done' : 'recording',
+        samples: motion.length
+      });
+      savedMotion = motion.length; savedGps = gps.length;
+    }
+  }
+  async function checkRecovery() {
+    await dbReady;
+    if (!db) return;
+    const tx = db.transaction('sessions', 'readonly');
+    const rq = tx.objectStore('sessions').getAll();
+    rq.onsuccess = () => {
+      const pending = rq.result.filter(s => s.status === 'recording' && s.samples > 300);
+      if (!pending.length) return;
+      const p = pending[pending.length - 1];
+      $('recoverText').textContent =
+        `Unsaved session found (${Math.round(p.samples / 60)}s) — recording was interrupted`;
+      $('recoverBar').style.display = 'block';
+      $('recoverExport').onclick = () => exportRecovered(p.sid);
+      $('recoverDiscard').onclick = () => { clearSaved(); $('recoverBar').style.display = 'none'; };
+    };
+  }
+  function exportRecovered(rsid) {
+    const tx = db.transaction('chunks', 'readonly');
+    const rq = tx.objectStore('chunks').getAll();
+    rq.onsuccess = async () => {
+      const chunks = rq.result.filter(c => c.sid === rsid);
+      const rm = [].concat(...chunks.map(c => c.motion));
+      const rg = [].concat(...chunks.map(c => c.gps));
+      const payload = {
+        format: 'shred-web-recording.v1', recordedAt: new Date(rsid).toISOString(),
+        userAgent: navigator.userAgent, recovered: true,
+        gaps: chunks.length ? chunks[chunks.length - 1].gaps : [],
+        note: 'recovered autosave; motion rows: [t, agx, agy, agz, ax, ay, az, rAlpha, rBeta, rGamma] (m/s², deg/s). gps rows: [t, lat, lon, hAcc, alt, vAcc, speed, heading]',
+        liveDetections: [], motion: rm, gps: rg
+      };
+      const name = 'shred-recovered-' + new Date(rsid).toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.json';
+      const file = new File([JSON.stringify(payload)], name, { type: 'application/json' });
+      if (navigator.canShare?.({ files: [file] })) {
+        try { await navigator.share({ files: [file] }); } catch (_) {}
+      } else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(file); a.download = name; a.click();
+      }
+      clearSaved(); $('recoverBar').style.display = 'none';
+    };
+  }
+  function clearSaved() {
+    if (!db) return;
+    const tx = db.transaction(['chunks', 'sessions'], 'readwrite');
+    tx.objectStore('chunks').clear();
+    tx.objectStore('sessions').clear();
+  }
+  checkRecovery();
+
+  // ── Lock/suspend resilience: re-arm wake lock, record the gap, keep going ──
+  document.addEventListener('visibilitychange', async () => {
+    if (!recording) return;
+    if (document.visibilityState === 'hidden') {
+      hiddenAt = Date.now();
+    } else {
+      if (hiddenAt) {
+        gaps.push([(hiddenAt - t0) / 1000, (Date.now() - t0) / 1000]);
+        hiddenAt = null;
+        logLine(`${fmtT((Date.now() - t0) / 1000)}  ⚠︎ gap (screen locked) — still recording`);
+      }
+      try { wakeLock = await navigator.wakeLock?.request('screen'); } catch (_) {}
+    }
+  });
 
   // ── Live airborne detector v3 (retuned on real sessions): free-fall window primary,
   //    landing confirms, and a walking veto — stride-periodic pocket slap is not an air. ──
@@ -175,7 +273,7 @@
 
   function onMotion(e) {
     if (!recording) return;
-    const t = (performance.now() - t0) / 1000;
+    const t = (Date.now() - t0) / 1000;
     const ag = e.accelerationIncludingGravity, a = e.acceleration, r = e.rotationRate;
     if (!ag) return;
     motion.push([
@@ -192,7 +290,7 @@
 
   function onGPS(pos) {
     if (!recording) return;
-    const t = (performance.now() - t0) / 1000;
+    const t = (Date.now() - t0) / 1000;
     const c = pos.coords;
     gps.push([+t.toFixed(2), c.latitude, c.longitude, c.accuracy,
               c.altitude, c.altitudeAccuracy, c.speed, c.heading]);
@@ -216,7 +314,9 @@
     $('peakG').textContent = '–'; $('samples').textContent = '0';
     $('log').textContent = 'Event log…';
 
-    t0 = performance.now(); recording = true;
+    t0 = Date.now(); sid = t0; savedMotion = 0; savedGps = 0; gaps = [];
+    recording = true;
+    autosaveId = setInterval(() => autosave(false), 8000);
     window.addEventListener('devicemotion', onMotion);
     if (navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition(onGPS,
@@ -224,7 +324,7 @@
         { enableHighAccuracy: true, maximumAge: 0 });
     }
     try { wakeLock = await navigator.wakeLock?.request('screen'); } catch (_) {}
-    timerId = setInterval(() => { $('elapsed').textContent = fmtT((performance.now()-t0)/1000); }, 1000);
+    timerId = setInterval(() => { $('elapsed').textContent = fmtT((Date.now()-t0)/1000); }, 1000);
     $('startBtn').style.display = 'none';
     $('stopBtn').style.display = 'block';
     $('shareBtn').style.display = $('dlBtn').style.display = 'none';
@@ -233,6 +333,8 @@
 
   function stop() {
     recording = false;
+    clearInterval(autosaveId);
+    autosave(true);
     window.removeEventListener('devicemotion', onMotion);
     if (watchId != null) navigator.geolocation.clearWatch(watchId);
     wakeLock?.release(); clearInterval(timerId);
@@ -253,6 +355,7 @@
       userAgent: navigator.userAgent,
       note: 'motion rows: [t, agx, agy, agz, ax, ay, az, rAlpha, rBeta, rGamma] (m/s², deg/s). gps rows: [t, lat, lon, hAcc, alt, vAcc, speed, heading]',
       liveDetections: events,
+      gaps,
       motion, gps
     };
     const name = 'shred-session-' + new Date().toISOString().replace(/[:.]/g,'-').slice(0,19) + '.json';
@@ -262,7 +365,11 @@
   async function share() {
     const file = makeFile();
     if (navigator.canShare?.({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'SHRED session' }); return; } catch (_) {}
+      try {
+        await navigator.share({ files: [file], title: 'SHRED session' });
+        clearSaved();
+        return;
+      } catch (_) {}
     }
     download();
   }
@@ -274,7 +381,23 @@
   }
 
   $('startBtn').addEventListener('click', start);
-  $('stopBtn').addEventListener('click', stop);
+  // Hold-to-stop (v4): pocket fabric killed a session via a stray tap; 1.5 s hold now.
+  let holdTimer = null;
+  const stopBtn = $('stopBtn');
+  function beginHold(e) {
+    e.preventDefault();
+    stopBtn.textContent = '■ Keep holding…';
+    holdTimer = setTimeout(() => { stopBtn.textContent = '■ Hold to Stop'; stop(); }, 1500);
+  }
+  function cancelHold() {
+    stopBtn.textContent = '■ Hold to Stop';
+    clearTimeout(holdTimer);
+  }
+  stopBtn.addEventListener('touchstart', beginHold, { passive: false });
+  stopBtn.addEventListener('touchend', cancelHold);
+  stopBtn.addEventListener('touchcancel', cancelHold);
+  stopBtn.addEventListener('mousedown', beginHold);
+  stopBtn.addEventListener('mouseup', cancelHold);
   $('shareBtn').addEventListener('click', share);
   $('dlBtn').addEventListener('click', download);
 })();
