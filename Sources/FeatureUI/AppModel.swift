@@ -50,6 +50,11 @@ public final class AppModel {
     public var healthSyncEnabled: Bool {
         didSet { defaults.set(healthSyncEnabled, forKey: "health") }
     }
+    /// Continual-improvement loop: post-session self-reports + manual calibration export.
+    /// Opt-in, off by default, flippable any time.
+    public var improveTrackingEnabled: Bool {
+        didSet { defaults.set(improveTrackingEnabled, forKey: "improveTracking") }
+    }
 
     private let defaults = UserDefaults.standard
     private var engine: SessionEngine?
@@ -66,6 +71,7 @@ public final class AppModel {
         metricUnits = defaults.object(forKey: "metric") as? Bool
             ?? (Locale.current.measurementSystem == .metric)
         healthSyncEnabled = defaults.bool(forKey: "health")
+        improveTrackingEnabled = defaults.bool(forKey: "improveTracking")
     }
 
     public var archive: SessionArchive { SessionArchive(root: storeRoot) }

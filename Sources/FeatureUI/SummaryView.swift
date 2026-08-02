@@ -27,6 +27,7 @@ public struct SummaryView: View {
                     StanceDonut(summary: record.summary)
                 }
                 speedChart
+                SessionReportCard(record: record)
                 timeline
             }
             .padding()

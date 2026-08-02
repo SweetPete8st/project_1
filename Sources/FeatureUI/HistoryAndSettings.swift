@@ -153,6 +153,13 @@ public struct SettingsView: View {
                 Text("Sessions count toward your rings as skating workouts.")
             }
             Section {
+                Toggle("Help improve tracking", isOn: $model.improveTrackingEnabled)
+            } footer: {
+                Text(
+                    "After each sesh, report how it went (ollies landed, what felt off) and share a calibration file when YOU choose. Reports tune detection for how you skate. Off by default; nothing is ever sent automatically."
+                )
+            }
+            Section {
                 Text("All telemetry stays on this iPhone. No account, no cloud, no analytics.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)

@@ -46,8 +46,37 @@ public struct SessionRecord: Sendable, Codable, Identifiable, Equatable {
     public var clockAnchors: ClockAnchors
     public var appVersion: String
     public var tuningVersion: String
+    /// Post-session rider report (opt-in improvement loop); nil when not provided.
+    public var selfReport: SessionSelfReport?
 
     public var duration: Double { endedAtSensor - startedAtSensor }
+}
+
+/// Builds the shareable calibration bundle: the session's detection output + the rider's
+/// self-report, versioned so replay tooling can regress against it. Raw telemetry chunks
+/// travel separately via the full-data export (FR-55) when needed.
+public enum CalibrationExport {
+    public static func data(for record: SessionRecord) throws -> Data {
+        struct Envelope: Codable {
+            var format = "shred-calibration-report.v1"
+            var exportedAt: Date
+            var appVersion: String
+            var tuningVersion: String
+            var record: SessionRecord
+        }
+        let enc = JSONEncoder()
+        enc.dateEncodingStrategy = .iso8601
+        enc.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try enc.encode(
+            Envelope(
+                exportedAt: Date(), appVersion: record.appVersion,
+                tuningVersion: record.tuningVersion, record: record))
+    }
+
+    public static func filename(for record: SessionRecord) -> String {
+        "shred-calibration-" + record.startedAtWall.formatted(.iso8601.year().month().day())
+            + "-" + record.id.uuidString.prefix(8) + ".json"
+    }
 }
 
 /// JSON-file session persistence: `Sessions/<uuid>.json` + newest-first index.
@@ -89,5 +118,14 @@ public struct SessionArchive: Sendable {
 
     public func delete(id: UUID) {
         try? FileManager().removeItem(at: dir.appendingPathComponent("\(id.uuidString).json"))
+    }
+
+    /// Attaches/replaces the rider's self-report on a saved session.
+    @discardableResult
+    public func attach(report: SessionSelfReport, to id: UUID) -> SessionRecord? {
+        guard var record = load(id: id) else { return nil }
+        record.selfReport = report
+        try? save(record)
+        return record
     }
 }
