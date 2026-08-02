@@ -66,15 +66,12 @@ public struct SeshHomeView: View {
                         armedCard
                     }
 
-                    Button {
+                    Checkerboard()
+                    Button("Start Sesh") {
                         Task { model.beginCalibrationFlow() }
-                    } label: {
-                        Text("Start Sesh")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 28)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(NinetiesButtonStyle(fill: DS.accent, big: true))
+                    .padding(.vertical, 6)
 
                     PocketPicker(selection: $model.defaultPocket)
 
@@ -87,15 +84,17 @@ public struct SeshHomeView: View {
                     Toggle(isOn: $model.autoStartEnabled) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Automatically detect when I start skating")
+                                .foregroundStyle(DS.ink)
                             Text(
                                 "Starts the timer at your first push. Uses motion only — no pocket calibration, so stance stats stay off for auto sessions."
                             )
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(DS.ink.opacity(0.65))
                         }
                     }
                     .padding(12)
-                    .background(DS.cardBackground, in: RoundedRectangle(cornerRadius: 12))
+                    .sticker(fill: DS.bone, tilt: -0.7)
+                    .tint(DS.hotPink)
 
                     if let error = model.lastError {
                         Text(error)
@@ -105,7 +104,16 @@ public struct SeshHomeView: View {
                 }
                 .padding()
             }
-            .navigationTitle("SHRED")
+            .navigationTitle("")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Text("SHRED")
+                        .font(DS.shoutFont(30))
+                        .foregroundStyle(DS.acid)
+                        .rotationEffect(.degrees(-2))
+                        .shadow(color: DS.hotPink, radius: 0, x: 2.5, y: 2.5)
+                }
+            }
         }
     }
 
@@ -114,15 +122,16 @@ public struct SeshHomeView: View {
             ProgressView()
             VStack(alignment: .leading, spacing: 2) {
                 Text("Armed — listening for pushes")
-                    .font(.headline)
+                    .font(DS.shoutFont(15))
+                    .foregroundStyle(DS.ink)
                 Text("Pocket the phone and push off. The timer backdates to your first push.")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DS.ink.opacity(0.7))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-        .background(DS.accent.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+        .sticker(fill: DS.electric, tilt: 0.9)
     }
 }
 
@@ -133,9 +142,10 @@ struct PocketPicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Which pocket?")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 11, weight: .heavy))
+                .foregroundStyle(DS.ink.opacity(0.75))
                 .textCase(.uppercase)
+                .kerning(1.5)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 pocketButton(.frontLeft, "Front left")
                 pocketButton(.frontRight, "Front right")
@@ -144,7 +154,7 @@ struct PocketPicker: View {
             }
         }
         .padding(12)
-        .background(DS.cardBackground, in: RoundedRectangle(cornerRadius: 12))
+        .sticker(fill: DS.bone, tilt: 0.6)
     }
 
     private func pocketButton(_ pocket: Pocket, _ label: String) -> some View {
@@ -155,9 +165,13 @@ struct PocketPicker: View {
                 .font(.callout.weight(selection == pocket ? .bold : .regular))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 10)
+                .foregroundStyle(DS.ink)
                 .background(
-                    selection == pocket ? DS.accent.opacity(0.25) : Color(.tertiarySystemFill),
+                    selection == pocket ? DS.acid : DS.bone.opacity(0.7),
                     in: RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(DS.ink, lineWidth: selection == pocket ? 3 : 1.5))
         }
         .buttonStyle(.plain)
     }

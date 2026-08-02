@@ -16,36 +16,36 @@ public struct LiveSessionView: View {
                 .foregroundStyle(.secondary)
 
             Text(Format.duration(model.liveStats.sessionElapsed))
-                .font(DS.statFont(64))
+                .font(DS.statFont(72))
+                .foregroundStyle(DS.acid)
+                .rotationEffect(.degrees(-2))
+                .shadow(color: DS.hotPink.opacity(0.8), radius: 0, x: 3, y: 3)
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 StatTile(
                     "Speed", Format.speed(model.liveStats.currentSpeed, metric: model.metricUnits),
-                    accent: true)
-                StatTile("Airs", "\(model.liveStats.airborneCount)")
-                StatTile("Pushes", "\(model.liveStats.pushCount)")
-                StatTile("Impacts", "\(model.liveStats.impactCount)")
+                    accent: true, index: 0)
+                StatTile("Airs", "\(model.liveStats.airborneCount)", index: 1)
+                StatTile("Pushes", "\(model.liveStats.pushCount)", index: 2)
+                StatTile("Impacts", "\(model.liveStats.impactCount)", index: 3)
             }
 
             if let last = model.liveStats.lastEvent {
                 Text(lastEventLabel(last))
-                    .font(.callout.bold())
+                    .font(DS.shoutFont(16))
+                    .foregroundStyle(DS.ink)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
-                    .background(DS.accent.opacity(0.2), in: Capsule())
+                    .sticker(fill: DS.acid, tilt: 1.5)
             }
+            Checkerboard()
 
             Spacer()
 
-            Button(role: .destructive) {
+            Button("End Sesh") {
                 confirmEnd = true
-            } label: {
-                Text("End Sesh")
-                    .font(.title3.bold())
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(NinetiesButtonStyle(fill: DS.hotPink))
             .confirmationDialog("End this sesh?", isPresented: $confirmEnd) {
                 Button("End Sesh", role: .destructive) {
                     Task { await model.endSession() }

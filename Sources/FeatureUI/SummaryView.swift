@@ -64,16 +64,17 @@ public struct SummaryView: View {
 
     private var header: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            StatTile("Duration", Format.duration(record.duration))
+            StatTile("Duration", Format.duration(record.duration), index: 0)
             StatTile(
-                "Active", Format.duration(record.summary.activeDuration))
+                "Active", Format.duration(record.summary.activeDuration), index: 1)
             StatTile(
-                "Distance", Format.distance(record.summary.distance, metric: model.metricUnits))
+                "Distance", Format.distance(record.summary.distance, metric: model.metricUnits),
+                index: 2)
             StatTile(
                 "Top speed",
                 Format.speed(record.summary.topSpeed, metric: model.metricUnits)
                     + (record.summary.topSpeedValidated ? "" : " ⚠︎"),
-                accent: true)
+                accent: true, index: 3)
         }
     }
 
