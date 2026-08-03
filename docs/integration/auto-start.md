@@ -75,6 +75,11 @@ the negative-control activity script, before the defaults are called production-
 - The armed phase deliberately runs motion-only at 50 Hz; a *backdated* session therefore
   has no GPS points for the pre-confirmation seconds (typically < 5 s). Distance for that
   sliver is inertial-only and negligible; documented here rather than papered over.
+- **Capture upgrade (added after field session 2026-08-03):** the engine swaps to the
+  full 100 Hz + GPS capture the moment detection confirms (`setSessionCaptureFactory`).
+  Without it, an auto-started session had no location running, so iOS suspended the app on
+  screen lock — the first real auto-started session lost 120 s of telemetry in-pocket.
+  Regression-tested by `autoStartUpgradesToFullSensorCapture`.
 
 ## Files added/changed for this feature
 

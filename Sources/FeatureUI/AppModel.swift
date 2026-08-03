@@ -160,6 +160,9 @@ public final class AppModel {
         guard engine == nil else { return }
         let engine = makeEngine(capture: CoreMotionCapture(sampleRate: 50, armedMode: true))
         self.engine = engine
+        // Auto-started sessions must upgrade to the full sensor array (GPS background
+        // lifeline included) — field session 2026-08-03 lost 120 s without this.
+        await engine.setSessionCaptureFactory { CoreMotionCapture(sampleRate: 100) }
         await engine.setStateChangeHandler { [weak self] state in
             Task { @MainActor [weak self] in
                 self?.engineStateChanged(state)
@@ -185,11 +188,8 @@ public final class AppModel {
             if source == .automatic {
                 phase = .live
                 AutoStartBackgroundService.shared.armedStateChanged(armed: false)
-                // The armed engine ran motion-only at 50 Hz. A session needs the full
-                // sensor array: hand the engine a full-rate capture upgrade.
-                // (v1: the armed CoreMotionCapture keeps delivering motion; GPS/baro
-                // attach on next foreground via upgradeCapture — documented limitation,
-                // docs/integration/auto-start.md.)
+                // Engine has already swapped to the full 100 Hz + GPS capture via the
+                // session capture factory (see armIfPossible).
             }
             autoStartArmed = false
         case .armed:

@@ -66,6 +66,17 @@ private func makeSynthSession() -> SessionSynthesizer {
     }
 }
 
+/// Polls until the engine reports an active session (the automatic path completes via an
+/// async capture-upgrade hop).
+private func waitForActive(_ engine: SessionEngine, timeout: Double = 3) async -> Bool {
+    let deadline = Date().addingTimeInterval(timeout)
+    while Date() < deadline {
+        if case .active = await engine.state { return true }
+        try? await Task.sleep(for: .milliseconds(20))
+    }
+    return false
+}
+
 @Suite struct AutoStartIntegrationTests {
     @Test func armedPushingStartsBackdatedAutomaticSession() async throws {
         let root = tempRoot()
@@ -74,8 +85,11 @@ private func makeSynthSession() -> SessionSynthesizer {
         let stream = AutoStartScenarios.skatePushing(seed: 60, pushes: 8)
         let capture = ScriptedCapture(motionFrames: stream.frames, sampleRate: 50)
         let engine = SessionEngine(capture: capture, storeRoot: root)
+        await engine.setSessionCaptureFactory { ScriptedCapture(motionFrames: []) }
 
         try await engine.arm()
+        await engine.waitForFeedEnd()
+        #expect(await waitForActive(engine))
         await engine.waitForFeedEnd()
         let record = try await engine.endSession()
 
@@ -130,13 +144,42 @@ private func makeSynthSession() -> SessionSynthesizer {
         #expect(listed.count == 1)
     }
 
+    @Test func autoStartUpgradesToFullSensorCapture() async throws {
+        // Field session 2026-08-03: an auto-started session stayed on the armed
+        // motion-only capture (no GPS lifeline) and lost 120 s in-pocket. The engine must
+        // swap to the session-grade source the moment detection confirms.
+        let root = tempRoot()
+        defer { try? FileManager().removeItem(at: root) }
+        let pushing = AutoStartScenarios.skatePushing(seed: 70, pushes: 8)
+        let synth = makeSynthSession()
+        let engine = SessionEngine(
+            capture: ScriptedCapture(motionFrames: pushing.frames, sampleRate: 50),
+            storeRoot: root)
+        let fullCapture = ScriptedCapture(
+            motionFrames: synth.motion, rawFrames: synth.rawAccel, fixes: synth.fixes,
+            baroFrames: synth.baro, sampleRate: 100)
+        await engine.setSessionCaptureFactory { fullCapture }
+        try await engine.arm()
+        await engine.waitForFeedEnd()
+        #expect(await waitForActive(engine))
+        await engine.waitForFeedEnd()
+        let record = try await engine.endSession()
+        #expect(record?.startSource == .automatic)
+        // Proof the full feed was consumed: GPS route + the synth ollie made it in.
+        #expect((record?.summary.distance ?? 0) > 20)
+        #expect((record?.summary.eventCounts[.airborne] ?? 0) >= 1)
+    }
+
     @Test func continuedPushingAfterAutoStartDoesNotDuplicate() async throws {
         let root = tempRoot()
         defer { try? FileManager().removeItem(at: root) }
         let stream = AutoStartScenarios.skatePushing(seed: 63, pushes: 20)
         let capture = ScriptedCapture(motionFrames: stream.frames, sampleRate: 50)
         let engine = SessionEngine(capture: capture, storeRoot: root)
+        await engine.setSessionCaptureFactory { ScriptedCapture(motionFrames: []) }
         try await engine.arm()
+        await engine.waitForFeedEnd()
+        #expect(await waitForActive(engine))
         await engine.waitForFeedEnd()
         _ = try await engine.endSession()
         let listed = await engine.sessionArchive.list()

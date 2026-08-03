@@ -25,8 +25,12 @@ public actor SessionEngine {
 
     public private(set) var state: EngineState = .idle
 
-    // Dependencies.
-    private let capture: any CaptureSource
+    // Dependencies. `capture` is swapped on automatic start: the armed phase runs a
+    // lightweight motion-only source, but a session needs the full sensor array — above
+    // all the GPS background lifeline (field session 2026-08-03: a pocketed auto-started
+    // session was suspended on screen lock and lost 120 s of telemetry).
+    private var capture: any CaptureSource
+    private var sessionCaptureFactory: (@Sendable () -> any CaptureSource)?
     private let chunkStore: ChunkStore
     private let checkpointStore: CheckpointStore
     private let archive: SessionArchive
@@ -97,6 +101,12 @@ public actor SessionEngine {
         onStateChange = handler
     }
 
+    /// Factory for the full-capture source a session should run on. Consulted whenever a
+    /// session starts while the engine holds a lighter capture (armed auto-start phase).
+    public func setSessionCaptureFactory(_ factory: (@Sendable () -> any CaptureSource)?) {
+        sessionCaptureFactory = factory
+    }
+
     private func transition(_ new: EngineState) {
         state = new
         onStateChange?(new)
@@ -133,18 +143,45 @@ public actor SessionEngine {
         if case .active(let id, _) = state { return id }  // duplicate prevention
         let wasArmed = (state == .armed)
         autoDetector = nil
+        if wasArmed {
+            // Tear down the armed lightweight capture and come up on the full array.
+            guard let feed = await restartCaptureForSession() else {
+                transition(.idle)
+                throw CaptureError.motionUnavailable
+            }
+            let id = beginSession(
+                source: .manual, calibration: calibration, startSensorTime: nil, auto: nil)
+            consume(feed: feed)
+            return id
+        }
         let id = beginSession(
             source: .manual, calibration: calibration, startSensorTime: nil, auto: nil)
-        if !wasArmed {
-            try await startConsuming()
-        }
+        try await startConsuming()
         return id
     }
 
-    /// Automatic start from a confirmed detection — backdated to the first push.
-    private func startAutomatically(_ detection: AutoStartDetection) {
+    /// Stops whatever capture is running, swaps in the session-grade source (when a
+    /// factory is configured), and returns its live feed.
+    private func restartCaptureForSession() async -> CaptureFeed? {
+        consumeTask?.cancel()
+        consumeTask = nil
+        await capture.stop()
+        if let factory = sessionCaptureFactory {
+            capture = factory()
+        }
+        guard let feed = try? await capture.start() else { return nil }
+        feedSampleRate = feed.sampleRate
+        return feed
+    }
+
+    /// Automatic start from a confirmed detection — backdated to the first push. Runs the
+    /// capture upgrade first so the session gets the full sensor array + GPS lifeline.
+    private func completeAutomaticStart(_ detection: AutoStartDetection) async {
         guard case .armed = state else { return }  // duplicate/late-event prevention
-        autoDetector = nil
+        guard let feed = await restartCaptureForSession() else {
+            transition(.idle)
+            return
+        }
         _ = beginSession(
             source: .automatic, calibration: nil, startSensorTime: detection.firstPushTime,
             auto: AutoStartMetadata(
@@ -165,6 +202,7 @@ public actor SessionEngine {
             }
             ingest(motion: m)
         }
+        consume(feed: feed)
     }
 
     private func beginSession(
@@ -206,6 +244,11 @@ public actor SessionEngine {
         guard consumeTask == nil else { return }
         let feed = try await capture.start()
         feedSampleRate = feed.sampleRate
+        consume(feed: feed)
+    }
+
+    private func consume(feed: CaptureFeed) {
+        guard consumeTask == nil else { return }
         // Strong capture is safe: endSession/disarm cancel this task, releasing the cycle.
         let engine = self
         consumeTask = Task {
@@ -254,7 +297,8 @@ public actor SessionEngine {
             armedFrameToggle.toggle()
             if feedSampleRate < 75 || armedFrameToggle {
                 if let detection = autoDetector?.push(motion: frame).detection {
-                    startAutomatically(detection)
+                    autoDetector = nil  // no further detections while the upgrade runs
+                    Task { await self.completeAutomaticStart(detection) }
                 }
             }
         case .active:
